@@ -10,7 +10,8 @@
   ],
   "features": [
     {
-      "name": "system.router"
+      "name": "system.router",
+      "name": "system.vibrator"
     }
   ],
   "config": {

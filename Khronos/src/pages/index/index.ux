@@ -1,48 +1,91 @@
 <template>
-  <div class="demo-page">
-    <text class="title">{{ $t("a.b") }},欢迎打开{{ title }}</text>
-    <!-- 点击跳转详情页 -->
-    <input class="btn" type="button" value="跳转到详情页" onclick="routeDetail" />
+  <div class="page">
+    <text class="phase">{{ phaseLabel }}</text>
+    <text class="time">{{ timeText }}</text>
+    <text class="count">Serie {{ setCount }}</text>
+    <input class="btn" type="button" value="{{ btnText }}" onclick="onTap" />
   </div>
 </template>
 
 <script>
-import router from "@system.router"
+import vibrator from '@system.vibrator'
 
 export default {
-  // 页面级组件的数据模型，影响传入数据的覆盖机制：private内定义的属性不允许被覆盖
-  private: {
-    title: "示例页面"
+  data: {
+    phase: 'idle',        // idle | rest | set
+    running: false,
+    seconds: 0,
+    restSec: 180,         // descanso: 3:00
+    setSec: 90,           // serie: 1:30
+    setCount: 0,
+    timer: null,
+    phaseLabel: 'Listo',
+    timeText: '03:00',
+    btnText: 'Iniciar'
   },
 
-  routeDetail() {
-    // 跳转到应用内的某个页面，router用法详见：文档->接口->页面路由
-    router.push({
-      uri: "/pages/detail"
-    })
-  }
+  fmt(s) {
+    const m = Math.floor(s / 60)
+    const r = s % 60
+    return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r
+  },
+
+  onTap() {
+    if (this.phase === 'idle') {
+      this.startPhase('rest')
+    } else if (this.running) {
+      this.clear()
+      this.running = false
+      this.btnText = 'Reanudar'
+    } else {
+      this.running = true
+      this.btnText = 'Pausar'
+      this.tick()
+    }
+  },
+
+  startPhase(p) {
+    this.clear()
+    this.phase = p
+    this.running = true
+    this.btnText = 'Pausar'
+    if (p === 'rest') {
+      this.seconds = this.restSec
+      this.phaseLabel = 'Descanso'
+    } else {
+      this.seconds = this.setSec
+      this.phaseLabel = 'Serie'
+      this.setCount++
+    }
+    this.timeText = this.fmt(this.seconds)
+    this.tick()
+  },
+
+  tick() {
+    this.clear()
+    this.timer = setInterval(() => {
+      this.seconds--
+      this.timeText = this.fmt(this.seconds)
+      if (this.seconds <= 0) {
+        vibrator.vibrate({ mode: 'long' })
+        // cambia solo a la otra fase, en bucle infinito
+        this.startPhase(this.phase === 'rest' ? 'set' : 'rest')
+      }
+    }, 1000)
+  },
+
+  clear() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null }
+  },
+
+  onDestroy() { this.clear() }
 }
 </script>
 
 <style>
-.demo-page {
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.title {
-  font-size: 20px;
-  text-align: center;
-}
-
-.btn {
-  width: 200px;
-  height: 40px;
-  margin-top: 20px;
-  border-radius: 5px;
-  background-color: #09ba07;
-  font-size: 20px;
-  color: #ffffff;
-}
+.page { flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; background-color: #000000; }
+.phase { font-size: 28px; color: #aaaaaa; }
+.time { font-size: 64px; color: #ffffff; margin: 8px 0; }
+.count { font-size: 24px; color: #00b300; margin-bottom: 12px; }
+.btn { width: 80%; height: 56px; background-color: #00b300; color: #ffffff; border-radius: 28px; }
 </style>
